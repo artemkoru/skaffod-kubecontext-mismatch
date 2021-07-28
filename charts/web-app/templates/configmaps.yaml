@@ -1,0 +1,14 @@
+
+{{- $fullName := include "web-app.fullname" . -}}
+{{- range $name, $data := .Values.configMaps }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: "{{ $fullName }}-{{ $name }}"
+data:
+{{- range $data }}
+  {{ .name }}: |
+    {{- .data | nindent 4 }}
+{{- end }}
+---
+{{- end }}

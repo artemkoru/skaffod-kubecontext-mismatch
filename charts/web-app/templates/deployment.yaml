@@ -1,0 +1,128 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "web-app.fullname" . }}
+  labels:
+    {{- include "web-app.labels" . | nindent 4 }}
+    app.kubernetes.io/component: web-app
+  annotations:
+    {{- include "web-app.annotations" . | nindent 4 }}
+spec:
+{{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+{{- end }}
+  selector:
+    matchLabels:
+      {{- include "web-app.selectorLabels" . | nindent 6 }}
+  {{- with .Values.deploymentStrategy }}
+  strategy:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  template:
+    metadata:
+      annotations:
+      {{- if .Values.recreatePods }}
+        rollme: {{ randAlphaNum 5 | quote }}
+      {{- end }}
+      {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "web-app.labels" . | nindent 8 }}
+        app.kubernetes.io/component: web-app
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ include "web-app.name" $ }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          {{- if .Values.image.tag }}
+          image: "{{ .Values.image.name }}:{{ .Values.image.tag }}"
+          {{- else }}
+          image: "{{ .Values.image.name }}"
+          {{- end }}
+          {{- if .Values.image.pullPolicy }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          {{- end }}
+          {{- with .Values.args }}
+          args:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          env:
+          {{- range $key, $val := .Values.baseEnv }}
+            - name: {{ $key | quote }}
+              {{- if typeIs "string" $val }}
+              value: {{ tpl $val $ | quote }}
+              {{- else if typeIs "map[string]interface {}" $val }}
+              {{- tpl ($val | toYaml ) $ | nindent 14 }}
+              {{- else }}
+              value: {{ $val | quote }}
+              {{- end }}
+          {{- end }}
+          {{- range $key, $val := .Values.env }}
+            - name: {{ $key | quote }}
+              {{- if typeIs "string" $val }}
+              value: {{ tpl $val $ | quote }}
+              {{- else if typeIs "map[string]interface {}" $val }}
+              {{- tpl ($val | toYaml ) $ | nindent 14 }}
+              {{- else }}
+              value: {{ $val | quote }}
+              {{- end }}
+          {{- end }}
+          ports:
+          {{- range .Values.ports }}
+            - name: {{ .name | quote }}
+              containerPort: {{ .containerPort }}
+              protocol: {{ .protocol | quote }}
+          {{- end }}
+
+          {{- with .Values.livenessProbe }}
+          livenessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.readinessProbe }}
+          readinessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.lifecycle }}
+          lifecycle:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.volumeMounts }}
+          volumeMounts:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+      {{- if .Values.sidecars }}
+        {{- toYaml .Values.sidecars | nindent 8 }}
+      {{- end }}
+      {{- with .Values.initContainers }}
+      initContainers:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.volumes }}
+      volumes: {{- include "common.tplvalues.render" (dict "value" . "context" $) | nindent 8 }}
+      {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- if .Values.affinity }}
+      affinity:
+        {{- toYaml .Values.affinity | nindent 8 }}
+      {{- else }}
+      affinity:
+        podAntiAffinity: {{- include "common.affinities.pods" (dict "type" .Values.podAntiAffinityPreset "component" "web-app" "context" $) | nindent 10 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

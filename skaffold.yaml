@@ -1,0 +1,20 @@
+apiVersion: skaffold/v2beta7
+kind: Config
+metadata:
+  name: skaffod-kubecontext-mismatch
+deploy:
+  kubeContext: kubecontext-2
+  helm:
+    flags:
+      install:
+      - "--timeout=5m"
+      upgrade:
+      - "--timeout=5m"
+    releases:
+      - name: "skaffod-kubecontext-mismatch"
+        chartPath: charts/web-app
+        wait: true
+        setValueTemplates:
+          image.name: nginx
+        valuesFiles:
+          - helm/values.yaml

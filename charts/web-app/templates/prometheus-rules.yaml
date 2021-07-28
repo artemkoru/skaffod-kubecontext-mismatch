@@ -1,0 +1,21 @@
+{{- if .Values.prometheusRule.enabled -}}
+{{- $fullName := include "web-app.fullname" . -}}
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  {{- with .Values.prometheusRule.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  labels:
+    {{- include "web-app.labels" . | nindent 4 }}
+    {{- with .Values.prometheusRule.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  name: {{ $fullName }}
+spec:
+  {{- with .Values.prometheusRule.groups }}
+  groups:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+{{- end }}
