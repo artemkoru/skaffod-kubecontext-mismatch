@@ -3,7 +3,7 @@ kind: Config
 metadata:
   name: skaffod-kubecontext-mismatch
 deploy:
-  kubeContext: kubecontext-2
+  kubeContext: kubecontext-1
   helm:
     flags:
       install:
